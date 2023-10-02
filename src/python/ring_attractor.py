@@ -11,15 +11,16 @@ from lif_model import LIF
 class RingAttractor:
     "A self-contained class for the ring attractor"
 
-    def __init__(self,
-                 n=256,
-                 noise=2.0e-3,
-                 weights=(0.050, 0.100, 0.050, 0.250),
-                 fixed_points_number=0,
-                 time=1000,
-                 plot=False,
-                 random_seed=None,):
-
+    def __init__(
+        self,
+        n=256,
+        noise=2.0e-3,
+        weights=(0.050, 0.100, 0.050, 0.250),
+        fixed_points_number=0,
+        time=1000,
+        plot=False,
+        random_seed=None,
+    ):
         self.n = n
         self.noise = noise
         self.weights = weights
@@ -27,7 +28,10 @@ class RingAttractor:
         self.time = time
         self.plot = plot
         self.random_seed = random_seed
-        self.neurons = [LIF(ID=i, angle=360.0/n*i, noise_mean=0, noise_std=self.noise) for i in range(n)]
+        self.neurons = [
+            LIF(ID=i, angle=360.0 / n * i, noise_mean=0, noise_std=self.noise)
+            for i in range(n)
+        ]
         self.fp_width = 3
         self.fixed_points = self.get_fixed_points()
         self.mid_point = n // 2
@@ -48,7 +52,6 @@ class RingAttractor:
         for t in range(self.time):
             print("\n\nTime = ", t)
             for neuron in self.neurons:
-
                 # self.input_source(n_of_spikes=5, begin=0, neuron=neuron, time=t)
                 if t == 0:
                     if neuron.id in range(31, 36):
@@ -56,10 +59,9 @@ class RingAttractor:
                 neuron.step()
                 potentials[neuron.id].append(neuron.V)
 
-
         self.process_potentials(potentials)
-        # divergence = self.kl_divergence(start_1=0, 
-        #                                 start_2=self.time//3*2, 
+        # divergence = self.kl_divergence(start_1=0,
+        #                                 start_2=self.time//3*2,
         #                                 lenght=self.time//3,
         #                                 fit_von_mises=True)
         divergence = 0
@@ -67,7 +69,7 @@ class RingAttractor:
         if self.plot:
             self.plot_potentials(divergence)
 
-        return divergence 
+        return divergence
 
     def process_potentials(self, potentials):
         data = pd.DataFrame(potentials)
@@ -98,16 +100,16 @@ class RingAttractor:
 
         """
 
-        slice_1 = self.spikes.iloc[:, start_1:start_1+lenght].values.flatten()
+        slice_1 = self.spikes.iloc[:, start_1 : start_1 + lenght].values.flatten()
         slice_1 = slice_1[~np.isnan(slice_1)]
 
-        slice_2 = self.spikes.iloc[:, start_2:start_2+lenght].values.flatten()
+        slice_2 = self.spikes.iloc[:, start_2 : start_2 + lenght].values.flatten()
         slice_2 = slice_2[~np.isnan(slice_2)]
 
         if slice_1.size > slice_2.size:
-            slice_1 = slice_1[:slice_2.size]
+            slice_1 = slice_1[: slice_2.size]
         elif slice_2.size > slice_1.size:
-            slice_2 = slice_2[:slice_1.size]
+            slice_2 = slice_2[: slice_1.size]
 
         if fit_von_mises:
             slice_1 = vonmises.fit(slice_1, fscale=slice_1.std())
@@ -120,53 +122,57 @@ class RingAttractor:
 
         return divergence
 
-
     def input_source(self, n_of_spikes, begin, neuron, time):
         sources = [i for i in range(self.mid_point - 2, self.mid_point + 3)]
         if time > begin:
             if neuron.id in sources:
                 for _ in range(n_of_spikes):
-                    neuron.exc_ps_td.append(
-                        ((time - begin) * 1e-3, self.weights[0]))
-                    
+                    neuron.exc_ps_td.append(((time - begin) * 1e-3, self.weights[0]))
 
-    def flush(self,neurons=True,fixed_points=True,connections=True):
+    def flush(self, neurons=True, fixed_points=True, connections=True):
         "Reset the model so simulations can be re-run without carrying activity over"
 
         if neurons:
-            self.neurons = [LIF(ID=i, angle=360.0/n*i, noise_mean=0, noise_std=self.noise,) for i in range(n)]
+            self.neurons = [
+                LIF(
+                    ID=i,
+                    angle=360.0 / n * i,
+                    noise_mean=0,
+                    noise_std=self.noise,
+                )
+                for i in range(n)
+            ]
         if fixed_points:
-            self.fixed_points=self.get_fixed_points()
+            self.fixed_points = self.get_fixed_points()
         if connections:
             self.connect_with_fixed_points()
         self.flushed = True
-        
 
     def connect_with_fixed_points(self):
         for neur in self.neurons:
             if neur.id in self.fixed_points:
                 for i in range(5, 12):
-                    neur.synapses["inh"][self.neurons[(
-                        neur.id + i) % self.n]] = self.weights[3]
-                    neur.synapses["inh"][self.neurons[neur.id - i]
-                                         ] = self.weights[3]
+                    neur.synapses["inh"][
+                        self.neurons[(neur.id + i) % self.n]
+                    ] = self.weights[3]
+                    neur.synapses["inh"][self.neurons[neur.id - i]] = self.weights[3]
                 for i in range(1, 5):
-                    neur.synapses["exc"][self.neurons[(
-                        neur.id + i) % self.n]] = self.weights[2]
-                    neur.synapses["exc"][self.neurons[neur.id - i]
-                                         ] = self.weights[2]
+                    neur.synapses["exc"][
+                        self.neurons[(neur.id + i) % self.n]
+                    ] = self.weights[2]
+                    neur.synapses["exc"][self.neurons[neur.id - i]] = self.weights[2]
 
             else:
                 for i in range(5, 12):
-                    neur.synapses["inh"][self.neurons[(
-                        neur.id + i) % self.n]] = self.weights[1]
-                    neur.synapses["inh"][self.neurons[neur.id - i]
-                                         ] = self.weights[1]
+                    neur.synapses["inh"][
+                        self.neurons[(neur.id + i) % self.n]
+                    ] = self.weights[1]
+                    neur.synapses["inh"][self.neurons[neur.id - i]] = self.weights[1]
                 for i in range(1, 5):
-                    neur.synapses["exc"][self.neurons[(
-                        neur.id + i) % self.n]] = self.weights[0]
-                    neur.synapses["exc"][self.neurons[neur.id - i]
-                                         ] = self.weights[0]
+                    neur.synapses["exc"][
+                        self.neurons[(neur.id + i) % self.n]
+                    ] = self.weights[0]
+                    neur.synapses["exc"][self.neurons[neur.id - i]] = self.weights[0]
 
     def get_fixed_points(self):
         if self.fp_n == 0:
@@ -181,39 +187,47 @@ class RingAttractor:
         dist = index % interval
         low = interval // 2 - self.fp_width // 2
         high = interval // 2 + self.fp_width // 2
-        
-        return index[(dist >= low) & (dist <= high)]
 
+        return index[(dist >= low) & (dist <= high)]
 
     def plot_potentials(self, err):
         _, ax = plt.subplots(figsize=(10, 10))
-        sns.heatmap(self.raw_data, vmin=-0.08, vmax=0.0, cmap="viridis", xticklabels=int(self.time/10),
-                    yticklabels=12, cbar_kws={'label': "Membrane Potential (V)"}, ax=ax)
+        sns.pointplot(
+            self.raw_data,
+        )
 
-
-        for target in np.arange(0,len(self.fixed_points),self.fp_width):
-            cur_fixed_point = np.mean(self.fixed_points[target:(target+self.fp_width)])
-            plt.plot([0,self.time],[cur_fixed_point,cur_fixed_point],color='k')
+        for target in np.arange(0, len(self.fixed_points), self.fp_width):
+            cur_fixed_point = np.mean(
+                self.fixed_points[target : (target + self.fp_width)]
+            )
+            plt.plot([0, self.time], [cur_fixed_point, cur_fixed_point], color="k")
 
         plt.xlabel("Time (ms)")
         plt.ylabel("Orientation of neuron (degrees)")
         plt.subplots_adjust(left=0.07, bottom=0.07, right=0.97, top=0.88)
 
-        ax.set_title("Number of fixed points: {}\nNoise: {:.3e}\nWeights: {}\nDivergence: {:.6e}\nRandom seed: {}".format(
-            self.fp_n, self.noise, self.weights, err, self.random_seed))
+        ax.set_title(
+            "Number of fixed points: {}\nNoise: {:.3e}\nWeights: {}\nDivergence: {:.6e}\nRandom seed: {}".format(
+                self.fp_n, self.noise, self.weights, err, self.random_seed
+            )
+        )
 
-        plt.savefig(
-            f"images/{datetime.now().strftime('%d-%m-%Y, %H:%M:%S')}.png")
+        plt.savefig(f"img.png")
         plt.show()
 
 
-
 if __name__ == "__main__":
-
     # np.random.seed(42)
     # ring = RingAttractor(n=256, noise=2.0e-3, weights=(0.050, 0.100, 0.050, 0.250), fixed_points_number=0, time=500, plot=True, random_seed=42)
     # error = ring.simulate()
 
-    ring = RingAttractor(n=64, noise=0e-3, weights=(0.050, 0.100, 0.050, 0.250), fixed_points_number=0, time=100, plot=True, random_seed=None)
+    ring = RingAttractor(
+        n=64,
+        noise=0e-3,
+        weights=(0.050, 0.100, 0.050, 0.250),
+        fixed_points_number=0,
+        time=100,
+        plot=True,
+        random_seed=None,
+    )
     error = ring.simulate()
-
